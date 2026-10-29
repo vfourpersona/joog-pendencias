@@ -16,8 +16,7 @@ body{margin:0;font-family:Jost,system-ui,sans-serif;background:var(--fundo);colo
 button,input,select,textarea{font:inherit;color:inherit}
 .topo{background:var(--azul);color:#fff;padding:14px 16px}
 .topo-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.marca{font-weight:700;letter-spacing:.06em;font-size:22px}
-.marca span{color:var(--ciano)}
+.marca{height:26px;width:auto;display:block}
 .topo h1{font-size:17px;font-weight:500;margin:0;flex:1;min-width:180px;opacity:.95}
 .topo .acoes{display:flex;gap:8px;align-items:center}
 .btn{border:1px solid var(--linha);background:var(--branco);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:500}
@@ -99,7 +98,7 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-o
 </head>
 <body>
 <header class="topo"><div class="topo-in">
-  <div class="marca">JO<span>O</span>G</div>
+  <svg class="marca" role="img" aria-label="JOOG" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 141.258 46.475"><path d="M15.386 0.446L4.439 0.446C1.832 0.446 0 2.222 0 4.666C0 7.164 1.832 8.886 4.439 8.886L10.947 8.886L10.947 32.761C10.947 34.871 9.28 36.537 6.782 37.925C5.726 38.535 4.672 39.701 4.672 41.589C4.672 44.7 7.892 46.475 10.446 45.422C15.498 43.365 19.831 39.37 19.831 32.761L19.831 5.054C19.831 2.444 17.999 0.446 15.386 0.446" fill="#ffffff"/><path d="M42.926 28.985C36.986 28.985 33.097 24.821 33.097 18.713C33.097 12.604 36.986 8.384 42.926 8.384C48.869 8.384 52.755 12.604 52.755 18.713C52.755 24.821 48.869 28.985 42.926 28.985M42.926 0.002C32.097 0.002 24.104 7.774 24.104 18.713C24.104 29.651 32.044 37.367 42.926 37.367C53.812 37.367 61.749 29.651 61.749 18.713C61.749 7.774 53.756 0.002 42.926 0.002" fill="#ffffff"/><path d="M84.125 28.985C78.182 28.985 74.296 24.821 74.296 18.713C74.296 12.604 78.182 8.384 84.125 8.384C90.065 8.384 93.953 12.604 93.953 18.713C93.953 24.821 90.065 28.985 84.125 28.985M84.125 0.002C73.296 0.002 65.302 7.774 65.302 18.713C65.302 29.651 73.24 37.367 84.125 37.367C95.007 37.367 102.948 29.651 102.948 18.713C102.948 7.774 94.954 0.002 84.125 0.002" fill="#ffffff"/><path d="M137.482 15.271L128.763 15.271C126.487 15.271 124.768 16.437 124.768 18.935C124.768 21.379 126.487 22.543 128.763 22.543L132.652 22.543L132.652 23.431C132.652 27.266 129.876 29.761 125.321 29.761C119.66 29.761 115.493 25.709 115.493 18.769C115.493 12.326 119.325 7.884 124.99 7.884C127.875 7.884 129.985 9.109 131.43 10.272C132.652 11.273 133.596 11.661 134.706 11.661C136.925 11.661 138.648 9.994 138.648 7.496C138.648 6.387 138.314 5.386 136.982 4.108C134.54 1.835 130.376 0 125.156 0C114.439 0 106.499 7.553 106.499 18.825C106.499 30.373 114.827 37.367 124.712 37.367C132.93 37.367 141.258 32.706 141.258 23.268L141.258 18.935C141.258 16.437 139.814 15.271 137.482 15.271" fill="#ffffff"/></svg>
   <h1>Pendências das fichas técnicas</h1>
   <div class="acoes" id="acoes" hidden>
     <span class="quem" id="quem"></span>
