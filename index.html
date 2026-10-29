@@ -32,9 +32,14 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .num small{color:var(--suave);font-size:13px}
 .barra{height:8px;background:#e8ecf4;border-radius:99px;overflow:hidden;display:flex;margin-top:12px}
 .barra i{display:block;height:100%}
-.filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}
+.filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px}
 .filtros input,.filtros select{width:100%;padding:9px 10px;border:1px solid var(--linha);border-radius:8px;background:#fff}
-.contagem{color:var(--suave);font-size:14px;margin:4px 2px 10px}
+.linha-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 2px 10px}
+.contagem{color:var(--suave);font-size:14px;flex:1;min-width:200px}
+.xl-msg{font-size:14px}
+.xl-msg ul{margin:6px 0;padding-left:20px}
+.xl-msg .botoes{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.xl-msg.erro{border-color:#f3b8b3;background:#fff6f5}
 details.grupo{background:var(--branco);border:1px solid var(--linha);border-radius:12px;margin-bottom:10px}
 details.grupo[open]{border-color:#b9c6e4}
 summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
@@ -102,7 +107,6 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-o
   <h1>Pendências das fichas técnicas</h1>
   <div class="acoes" id="acoes" hidden>
     <span class="quem" id="quem"></span>
-    <button class="btn btn-claro" id="exportar" title="Baixa todas as pendências com status e resposta">Exportar planilha</button>
     <button class="btn btn-claro" id="sair">Sair</button>
   </div>
 </div></header>
@@ -126,6 +130,7 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-o
   <section class="painel filtros">
     <input class="busca" id="busca" type="search" placeholder="Buscar modelo, SKU ou pendência">
     <select id="f-dep"><option value="">Todos os departamentos</option></select>
+    <select id="f-sub"><option value="">Todas as categorias</option></select>
     <select id="f-tipo">
       <option value="">Todos os tipos</option>
       <option value="decisao">Decisão geral</option>
@@ -142,7 +147,13 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-o
       <option value="nao_se_aplica">Não se aplica</option>
     </select>
   </section>
-  <div class="contagem" id="contagem"></div>
+  <div class="linha-acoes">
+    <div class="contagem" id="contagem"></div>
+    <button class="btn" id="xl-baixar" title="Baixa as pendências do filtro atual para preencher Status e Resposta">Baixar Excel do filtro</button>
+    <button class="btn" id="xl-enviar" title="Lê o Excel preenchido e grava as respostas">Enviar Excel preenchido</button>
+    <input type="file" id="xl-arquivo" accept=".xlsx" hidden>
+  </div>
+  <section class="painel xl-msg" id="xl-msg" hidden></section>
   <div id="lista"></div>
 </main>
 
@@ -216,6 +227,7 @@ async function iniciar() {
   itens.forEach(i => { porId.set(i.id, i); if (!porGrupo.has(i.g)) porGrupo.set(i.g, []); porGrupo.get(i.g).push(i); });
   [...new Set(grupos.map(g => g.dep))].filter(d => d !== "Geral").sort()
     .forEach(d => $("#f-dep").insertAdjacentHTML("beforeend", `<option>${esc(d)}</option>`));
+  opcoesSub();
   desenhar();
   setInterval(buscarNovas, 60000);
 }
@@ -223,7 +235,26 @@ function guardarResp(r) { resp.set(r.item_id, r); if (!ultimo || r.atualizado > 
 const st = id => resp.get(id)?.status || "pendente";
 
 // ---- filtros e lista
-["#busca", "#f-dep", "#f-tipo", "#f-status"].forEach(s => $(s).addEventListener("input", () => { clearTimeout(window._f); window._f = setTimeout(desenhar, 200); }));
+["#busca", "#f-dep", "#f-sub", "#f-tipo", "#f-status"].forEach(s => $(s).addEventListener("input", () => { clearTimeout(window._f); window._f = setTimeout(desenhar, 200); }));
+$("#f-dep").addEventListener("input", opcoesSub);
+
+// categorias (subcategorias) do departamento escolhido
+function opcoesSub() {
+  const dep = $("#f-dep").value, atual = $("#f-sub").value;
+  const subs = [...new Set(grupos.filter(g => g.id !== "geral" && (!dep || g.dep === dep)).map(g => g.sub))].sort();
+  $("#f-sub").innerHTML = '<option value="">Todas as categorias</option>' + subs.map(s => `<option>${esc(s)}</option>`).join("");
+  if (subs.includes(atual)) $("#f-sub").value = atual;
+}
+// modelos e pendências que passam no filtro (a lista e o Excel usam a mesma regra)
+function visiveis() {
+  const dep = $("#f-dep").value, sub = $("#f-sub").value, out = [];
+  for (const g of grupos) {
+    if (g.id === "geral" ? dep || sub : (dep && g.dep !== dep) || (sub && g.sub !== sub)) continue;
+    const vis = (porGrupo.get(g.id) || []).filter(i => passa(i, g));
+    if (vis.length) out.push([g, vis]);
+  }
+  return out;
+}
 
 function passa(i, g) {
   const tipo = $("#f-tipo").value, fs = $("#f-status").value, s = st(i.id);
@@ -235,12 +266,8 @@ function passa(i, g) {
 }
 function desenhar() {
   resumo();
-  const dep = $("#f-dep").value;
   let html = "", nG = 0, nI = 0;
-  for (const g of grupos) {
-    if (dep && g.dep !== dep && g.id !== "geral") continue;
-    const vis = (porGrupo.get(g.id) || []).filter(i => passa(i, g));
-    if (!vis.length) continue;
+  for (const [g, vis] of visiveis()) {
     nG++; nI += vis.length;
     html += `<details class="grupo" data-g="${esc(g.id)}"${abertos.has(g.id) ? " open" : ""}>
       <summary><div class="g-nome">${esc(g.nome)}${skuCurto(g.skus)}</div>${progGrupo(g.id)}
@@ -377,21 +404,139 @@ async function buscarNovas() {
   } catch (e) {}
 }
 
-// ---- exportar (CSV que abre no Excel)
-$("#exportar").addEventListener("click", () => {
-  const gi = new Map(grupos.map(g => [g.id, g]));
-  const cel = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const linhas = [["ID", "Departamento", "Subcategoria", "Modelo", "SKUs", "Tipo", "Pendência", "Contexto", "Status", "Resposta", "Quem", "Atualizado", "Ajuda: o que é", "Ajuda: como conseguir", "Ajuda: como responder"]];
-  itens.forEach(i => {
-    const g = gi.get(i.g), r = resp.get(i.id) || {}, a = ajudas.get(i.aj) || AJUDA_TIPO[i.t];
-    linhas.push([i.id, g.dep, i.g === "geral" ? i.secao : g.sub, g.modelo, (i.skus.length ? i.skus : g.skus).join(", "),
-      TIPO[i.t], i.txt, i.det, STATUS[st(i.id)], r.resposta, r.quem, quando(r.atualizado), a.oque, a.como, a.exemplo]);
+// ---- Excel: baixar o filtro atual e enviar de volta preenchido
+// As colunas ocultas "Status original" e "Resposta original" guardam o que estava no painel na hora de baixar.
+// Na volta, só grava o que a pessoa mudou no Excel, e não passa por cima do que outra pessoa mudou no painel nesse meio-tempo.
+let exceljs;
+const carregarExcelJS = () => exceljs ||= new Promise((ok, erro) => {
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+  s.onload = () => ok(window.ExcelJS); s.onerror = () => { exceljs = null; erro(new Error("ExcelJS")); };
+  document.head.appendChild(s);
+});
+const COLS = [["ID", 11], ["Modelo", 30], ["SKUs", 22], ["Tipo", 18], ["Pendência", 45], ["Contexto", 40], ["Status", 22], ["Resposta", 50],
+  ["O que é", 45], ["Como conseguir", 55], ["Como responder", 40], ["Última alteração", 24], ["Status original", 10], ["Resposta original", 10]];
+const sem = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const STATUS_TXT = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [sem(v), k]).concat([["perguntado", "perguntado"], ["nao", "nao_se_aplica"]]));
+const fatia = s => sem(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function textoCel(v) {
+  if (v == null) return "";
+  if (typeof v === "object") {
+    if (v instanceof Date) return v.toLocaleDateString("pt-BR");
+    if (v.richText) return v.richText.map(p => p.text).join("");
+    if ("text" in v) return String(v.text);
+    if ("result" in v) return textoCel(v.result);
+    return "";
+  }
+  return String(v);
+}
+const limpo = s => textoCel(s).replace(/\r\n?/g, "\n").trimEnd();
+function aviso(html, erro = false) { const m = $("#xl-msg"); m.hidden = !html; m.classList.toggle("erro", erro); m.innerHTML = html; }
+
+$("#xl-baixar").addEventListener("click", async () => {
+  const lista = visiveis(), b = $("#xl-baixar");
+  if (!lista.length) { aviso("Nada no filtro para baixar."); return; }
+  b.disabled = true; b.textContent = "Montando…";
+  try {
+    const ExcelJS = await carregarExcelJS(), wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Pendências", {views: [{state: "frozen", ySplit: 1}]});
+    ws.columns = COLS.map(([header, width]) => ({header, width}));
+    for (const [g, vis] of lista) for (const i of vis) {
+      const r = resp.get(i.id) || {}, a = ajudas.get(i.aj) || AJUDA_TIPO[i.t];
+      const det = i.t === "campo" ? `Seção da ficha: ${i.det}` : i.t === "pergunta" && i.det ? `O que confirmar: ${i.det}` : i.det;
+      ws.addRow([i.id, g.id === "geral" ? `Decisão geral: ${i.secao}` : `${g.nome} (${g.modelo})`, (i.skus.length ? i.skus : g.skus).join(", "),
+        TIPO[i.t], i.txt, det, STATUS[st(i.id)], r.resposta || "", a.oque, a.como, a.exemplo,
+        r.quem ? `${r.quem}, ${quando(r.atualizado)}` : "", STATUS[st(i.id)], r.resposta || ""]);
+    }
+    const cab = ws.getRow(1);
+    cab.font = {bold: true, color: {argb: "FFFFFFFF"}}; cab.height = 22;
+    cab.eachCell(c => { c.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FF0034A4"}}; c.alignment = {vertical: "middle"}; });
+    ["G1", "H1"].forEach(k => ws.getCell(k).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FF00B1FF"}});
+    ws.eachRow((row, n) => {
+      if (n === 1) return;
+      row.alignment = {wrapText: true, vertical: "top"};
+      row.getCell(1).font = {color: {argb: "FF8A93A6"}, size: 9};
+      [7, 8].forEach(c => row.getCell(c).fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFFFF8E1"}});
+      row.getCell(7).dataValidation = {type: "list", allowBlank: true, showErrorMessage: true,
+        errorTitle: "Status", error: "Escolha um status da lista.", formulae: [`"${Object.values(STATUS).join(",")}"`]};
+    });
+    ws.getColumn(13).hidden = ws.getColumn(14).hidden = true;
+    ws.autoFilter = {from: "A1", to: "L1"};
+    const como = wb.addWorksheet("Como preencher");
+    como.getColumn(1).width = 110;
+    ["Preencha só as colunas Status (escolha na lista) e Resposta, as duas em amarelo.",
+     "O \"?\" do painel está nas colunas O que é, Como conseguir e Como responder.",
+     "Escrever uma resposta numa pendência que está Pendente ou Perguntado já marca como Respondido ao enviar.",
+     "Não apague nem altere a coluna ID: é ela que liga a linha à pendência. Pode apagar linhas que não vai responder.",
+     "Quando terminar, no painel clique em \"Enviar Excel preenchido\" e escolha este arquivo. O painel mostra o que vai mudar antes de gravar.",
+     `Baixado em ${quando(new Date())} por ${nome}.`].forEach(t => como.addRow([t]));
+    const filtro = $("#f-sub").value || $("#f-dep").value || "todas";
+    const blob = new Blob([await wb.xlsx.writeBuffer()], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `pendencias-joog-${fatia(filtro)}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    aviso("");
+  } catch (e) { aviso("Não foi possível montar o Excel (sem conexão?). Tente de novo.", true); }
+  b.disabled = false; b.textContent = "Baixar Excel do filtro";
+});
+
+$("#xl-enviar").addEventListener("click", () => $("#xl-arquivo").click());
+$("#xl-arquivo").addEventListener("change", async ev => {
+  const arq = ev.target.files[0]; ev.target.value = "";
+  if (!arq) return;
+  aviso(`Lendo ${esc(arq.name)}…`);
+  let ws;
+  try {
+    const ExcelJS = await carregarExcelJS(), wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await arq.arrayBuffer());
+    ws = wb.getWorksheet("Pendências") || wb.worksheets[0];
+    (await tudo("respostas")).forEach(guardarResp); // estado atual do painel, para não desfazer mudança de outra pessoa
+  } catch (e) { aviso("Não consegui ler o arquivo. Ele precisa ser o Excel (.xlsx) baixado neste painel.", true); return; }
+  const col = {};
+  ws.getRow(1).eachCell((c, n) => col[sem(textoCel(c.value))] = n);
+  if (!col.id || !col.status || !col.resposta) { aviso("Esse Excel não tem as colunas ID, Status e Resposta. Use o arquivo baixado em \"Baixar Excel do filtro\".", true); return; }
+  const envio = [], conflito = [], ruim = [];
+  let lidas = 0, desconhecidas = 0;
+  ws.eachRow((row, n) => {
+    if (n === 1) return;
+    const id = limpo(row.getCell(col.id).value);
+    if (!id) return;
+    lidas++;
+    const i = porId.get(id);
+    if (!i) { desconhecidas++; return; }
+    const stTxt = limpo(row.getCell(col.status).value), novoRes = limpo(row.getCell(col.resposta).value);
+    const temOrig = col["status original"] && col["resposta original"];
+    const origSt = temOrig ? STATUS_TXT[sem(limpo(row.getCell(col["status original"]).value))] || "pendente" : st(id);
+    const origRes = temOrig ? limpo(row.getCell(col["resposta original"]).value) : (resp.get(id)?.resposta || "").trimEnd();
+    let novoSt = stTxt ? STATUS_TXT[sem(stTxt)] : origSt;
+    if (!novoSt) { ruim.push(`Linha ${n}: status "${stTxt}" não existe`); return; }
+    if (novoSt === origSt && novoRes === origRes) return; // a pessoa não mexeu nessa linha
+    if (novoRes && novoRes !== origRes && novoSt === origSt && (novoSt === "pendente" || novoSt === "perguntado")) novoSt = "respondido";
+    const srvSt = st(id), srvRes = (resp.get(id)?.resposta || "").trimEnd();
+    if (srvSt === novoSt && srvRes === novoRes) return; // já está assim no painel
+    if (srvSt !== origSt || srvRes !== origRes) { conflito.push(i); return; } // mudou no painel depois que o Excel foi baixado
+    envio.push({item_id: id, status: novoSt, resposta: novoRes, quem: nome});
   });
-  const blob = new Blob(["﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n")], {type: "text/csv;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `pendencias-joog-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  const nRes = envio.filter(e => e.resposta !== (resp.get(e.item_id)?.resposta || "").trimEnd()).length;
+  const lista = (arr, f) => `<ul>${arr.slice(0, 8).map(f).join("")}${arr.length > 8 ? `<li>e mais ${arr.length - 8}</li>` : ""}</ul>`;
+  let html = `<b>${esc(arq.name)}</b>: ${lidas} linhas lidas.<br>`;
+  html += envio.length ? `<b>${envio.length} alterações para gravar</b> (${nRes} com resposta nova ou mudada; as outras só mudam o status).` : "Nenhuma alteração nova para gravar.";
+  if (conflito.length) html += `<p><b>${conflito.length} ficaram de fora</b> porque alguém mudou no painel depois que este Excel foi baixado. Confira no painel:</p>`
+    + lista(conflito, i => `<li>${esc(grupos.find(g => g.id === i.g)?.nome || "")}: ${esc(i.txt.slice(0, 90))}</li>`);
+  if (ruim.length) html += `<p><b>${ruim.length} linhas com status inválido</b> (ficaram de fora):</p>` + lista(ruim, t => `<li>${esc(t)}</li>`);
+  if (desconhecidas) html += `<p>${desconhecidas} linhas com ID que não existe mais no painel (ficaram de fora).</p>`;
+  html += `<div class="botoes">${envio.length ? `<button class="btn btn-prim" id="xl-ok">Gravar ${envio.length} alterações</button>` : ""}<button class="btn" id="xl-cancela">${envio.length ? "Cancelar" : "Fechar"}</button></div>`;
+  aviso(html);
+  $("#xl-cancela").addEventListener("click", () => aviso(""));
+  $("#xl-ok")?.addEventListener("click", async ev => {
+    ev.target.disabled = true; ev.target.textContent = "Gravando…";
+    try {
+      for (let k = 0; k < envio.length; k += 500) await gravar(envio.slice(k, k + 500));
+      desenhar();
+      aviso(`<b>${envio.length} alterações gravadas</b> a partir de ${esc(arq.name)}, em nome de ${esc(nome)}.<div class="botoes"><button class="btn" id="xl-cancela">Fechar</button></div>`);
+      $("#xl-cancela").addEventListener("click", () => aviso(""));
+    } catch (e) { ev.target.disabled = false; ev.target.textContent = "Não gravou. Tentar de novo"; }
+  });
 });
 
 // ---- volta direto se já entrou neste navegador
