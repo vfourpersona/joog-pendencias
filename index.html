@@ -61,9 +61,8 @@ summary::-webkit-details-marker{display:none}
 .tag.t-pergunta{background:#e6f6ff;color:#0069a8}
 .tag.t-conferir{background:#fff4e0;color:#9a5b00}
 .prio{border-radius:99px;padding:2px 9px;font-weight:600}
-.prio.p1{background:#b42318;color:#fff}
-.prio.p2{background:#fff4e0;color:#9a5b00}
-.prio.p3{background:#eef0f4;color:#5b6478}
+.prio.p1{background:var(--azul);color:#fff}
+.prio.p2{background:#eef0f4;color:#5b6478}
 .skus{color:var(--suave)}
 .sku{font-weight:600;color:var(--azul);background:#eef2fb;border-radius:6px;padding:1px 7px;font-size:13px;white-space:nowrap}
 .g-nome .sku{margin-left:6px;vertical-align:1px}
@@ -135,11 +134,10 @@ textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-o
     <input class="busca" id="busca" type="search" placeholder="Buscar modelo, SKU ou pendência">
     <select id="f-dep"><option value="">Todos os departamentos</option></select>
     <select id="f-sub"><option value="">Todas as categorias</option></select>
-    <select id="f-prio" title="Alta: risco jurídico ou de anúncio derrubado (Anatel, Contran, Inmetro). Média: divergência de cadastro ou resposta do site a confirmar. Baixa: completar a ficha.">
-      <option value="">Todas as prioridades</option>
-      <option value="1">Prioridade alta</option>
-      <option value="2">Prioridade média</option>
-      <option value="3">Prioridade baixa</option>
+    <select id="f-prio" title="Essenciais: o que é preciso para vender certo e dentro da lei (Anatel, Contran, Inmetro, garantia, fabricante, origem, peso e medidas, divergências, respostas do site). Desejáveis: o que enriquece a ficha (vídeo, manual, fotos de uso, detalhes).">
+      <option value="">Essenciais e desejáveis</option>
+      <option value="1">Só essenciais</option>
+      <option value="2">Só desejáveis</option>
     </select>
     <select id="f-tipo">
       <option value="">Todos os tipos</option>
@@ -172,7 +170,7 @@ const API = "https://dovjtghrdkigppwhabjl.supabase.co/rest/v1/";
 const CHAVE = "sb_publishable_Zax16CQqU-UQ-56rIQCjZg_uxt3PHYt";
 const STATUS = {pendente: "Pendente", perguntado: "Perguntado ao fornecedor", respondido: "Respondido", nao_se_aplica: "Não se aplica"};
 const TIPO = {decisao: "Decisão geral", pergunta: "Resposta do site a confirmar", campo: "Campo da ficha que falta", conferir: "Ponto a conferir"};
-const PRIO = {1: "Alta", 2: "Média", 3: "Baixa"};
+const PRIO = {1: "Essencial", 2: "Desejável"};
 const COR = {pendente: "var(--pendente)", perguntado: "var(--perguntado)", respondido: "var(--respondido)", nao_se_aplica: "var(--nao)"};
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
@@ -236,7 +234,7 @@ async function iniciar() {
   if (!itens.length) { guardar("jp-codigo", null); location.reload(); return; }
   grupos.unshift({id: "geral", dep: "Geral", sub: "Decisões gerais", modelo: "", nome: "Decisões gerais (valem para vários produtos)", skus: [], pagina: ""});
   itens.forEach(i => { porId.set(i.id, i); if (!porGrupo.has(i.g)) porGrupo.set(i.g, []); porGrupo.get(i.g).push(i); });
-  porGrupo.forEach(l => l.sort((a, b) => (a.p || 3) - (b.p || 3) || a.ordem - b.ordem)); // alta primeiro dentro de cada modelo
+  porGrupo.forEach(l => l.sort((a, b) => (a.p || 2) - (b.p || 2) || a.ordem - b.ordem)); // essenciais primeiro dentro de cada modelo
   [...new Set(grupos.map(g => g.dep))].filter(d => d !== "Geral").sort()
     .forEach(d => $("#f-dep").insertAdjacentHTML("beforeend", `<option>${esc(d)}</option>`));
   opcoesSub();
@@ -271,7 +269,7 @@ function visiveis() {
 function passa(i, g) {
   const tipo = $("#f-tipo").value, fs = $("#f-status").value, fp = $("#f-prio").value, s = st(i.id);
   if (tipo && i.t !== tipo) return false;
-  if (fp && String(i.p || 3) !== fp) return false;
+  if (fp && String(i.p || 2) !== fp) return false;
   if (fs === "aberto" ? !(s === "pendente" || s === "perguntado") : fs && s !== fs) return false;
   const b = $("#busca").value.trim().toLowerCase();
   if (!b) return true;
@@ -294,7 +292,7 @@ function desenhar() {
     d.addEventListener("toggle", () => { d.open ? (abertos.add(d.dataset.g), corpo(d)) : abertos.delete(d.dataset.g); });
   });
 }
-const altas = l => { const n = l.filter(i => i.p === 1).length; return n ? ` · <b style="color:#b42318">${n} de prioridade alta</b>` : ""; };
+const altas = l => { const n = l.filter(i => i.p === 1).length; return n ? ` · <b style="color:var(--azul)">${n} essencia${n === 1 ? "l" : "is"}</b>` : ""; };
 function contar(lista) {
   const c = {pendente: 0, perguntado: 0, respondido: 0, nao_se_aplica: 0};
   lista.forEach(i => c[st(i.id)]++);
@@ -342,7 +340,7 @@ function cartao(i) {
   const rotulo = !skus.length ? "" : i.skus.length ? `Só para ${skus.length > 1 ? "os SKUs" : "o SKU"}: ${skus.join(", ")}`
     : skus.length === 1 ? `SKU ${skus[0]}` : `Todos os ${skus.length} SKUs do modelo (${skus[0]} e outros)`;
   return `<div class="item" data-id="${esc(i.id)}" data-s="${s}">
-    <div class="it-topo"><span class="prio p${i.p || 3}">Prioridade ${PRIO[i.p || 3].toLowerCase()}</span><span class="tag t-${i.t}">${TIPO[i.t]}</span>${i.secao ? `<span class="skus">${esc(i.secao)}</span>` : ""}
+    <div class="it-topo"><span class="prio p${i.p || 2}">${PRIO[i.p || 2]}</span><span class="tag t-${i.t}">${TIPO[i.t]}</span>${i.secao ? `<span class="skus">${esc(i.secao)}</span>` : ""}
       ${rotulo ? `<span class="sku">${esc(rotulo)}</span>` : ""}
       <button type="button" class="ajuda-btn" aria-expanded="false" title="O que preciso trazer?">?</button></div>
     <p class="txt">${esc(i.txt)}</p>${det ? `<p class="det">${esc(det)}</p>` : ""}
@@ -428,7 +426,7 @@ const carregarExcelJS = () => exceljs ||= new Promise((ok, erro) => {
   s.onload = () => ok(window.ExcelJS); s.onerror = () => { exceljs = null; erro(new Error("ExcelJS")); };
   document.head.appendChild(s);
 });
-const COLS = [["ID", 11], ["Prioridade", 11], ["Modelo", 30], ["SKUs", 22], ["Tipo", 18], ["Pendência", 45], ["Contexto", 40], ["Status", 22], ["Resposta", 50],
+const COLS = [["ID", 11], ["Essencial ou desejável", 14], ["Modelo", 30], ["SKUs", 22], ["Tipo", 18], ["Pendência", 45], ["Contexto", 40], ["Status", 22], ["Resposta", 50],
   ["O que é", 45], ["Como conseguir", 55], ["Como responder", 40], ["Última alteração", 24], ["Status original", 10], ["Resposta original", 10]];
 const sem = s => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 const STATUS_TXT = Object.fromEntries(Object.entries(STATUS).map(([k, v]) => [sem(v), k]).concat([["perguntado", "perguntado"], ["nao", "nao_se_aplica"]]));
@@ -457,7 +455,7 @@ $("#xl-baixar").addEventListener("click", async () => {
     for (const [g, vis] of lista) for (const i of vis) {
       const r = resp.get(i.id) || {}, a = ajudas.get(i.aj) || AJUDA_TIPO[i.t];
       const det = i.t === "campo" ? `Seção da ficha: ${i.det}` : i.t === "pergunta" && i.det ? `O que confirmar: ${i.det}` : i.det;
-      ws.addRow([i.id, PRIO[i.p || 3], g.id === "geral" ? `Decisão geral: ${i.secao}` : `${g.nome} (${g.modelo})`, (i.skus.length ? i.skus : g.skus).join(", "),
+      ws.addRow([i.id, PRIO[i.p || 2], g.id === "geral" ? `Decisão geral: ${i.secao}` : `${g.nome} (${g.modelo})`, (i.skus.length ? i.skus : g.skus).join(", "),
         TIPO[i.t], i.txt, det, STATUS[st(i.id)], r.resposta || "", a.oque, a.como, a.exemplo,
         r.quem ? `${r.quem}, ${quando(r.atualizado)}` : "", STATUS[st(i.id)], r.resposta || ""]);
     }
@@ -478,7 +476,7 @@ $("#xl-baixar").addEventListener("click", async () => {
     const como = wb.addWorksheet("Como preencher");
     como.getColumn(1).width = 110;
     ["Preencha só as colunas Status (escolha na lista) e Resposta, as duas em amarelo.",
-     "Prioridade: Alta = risco jurídico ou de anúncio derrubado (Anatel, Contran, Inmetro); Média = divergência de cadastro ou resposta do site a confirmar; Baixa = completar a ficha.",
+     "Essencial = preciso para vender certo e dentro da lei (Anatel, Contran, Inmetro, garantia, fabricante, origem, peso e medidas, divergências, respostas do site). Desejável = enriquece a ficha (vídeo, manual, fotos de uso, detalhes). Comece pelos essenciais.",
      "O \"?\" do painel está nas colunas O que é, Como conseguir e Como responder.",
      "Escrever uma resposta numa pendência que está Pendente ou Perguntado já marca como Respondido ao enviar.",
      "Não apague nem altere a coluna ID: é ela que liga a linha à pendência. Pode apagar linhas que não vai responder.",
