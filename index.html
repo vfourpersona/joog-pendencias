@@ -57,6 +57,15 @@ summary::-webkit-details-marker{display:none}
 .tag.t-pergunta{background:#e6f6ff;color:#0069a8}
 .tag.t-conferir{background:#fff4e0;color:#9a5b00}
 .skus{color:var(--suave)}
+.sku{font-weight:600;color:var(--azul);background:#eef2fb;border-radius:6px;padding:1px 7px;font-size:13px;white-space:nowrap}
+.g-nome .sku{margin-left:6px;vertical-align:1px}
+.ajuda-btn{margin-left:auto;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ciano);background:#fff;color:var(--azul);
+  font-weight:700;font-size:14px;cursor:pointer;line-height:1;padding:0;flex:none}
+.ajuda-btn:hover,.ajuda-btn[aria-expanded=true]{background:var(--ciano);color:#fff}
+.ajuda{background:#eefaff;border:1px solid #bfe9ff;border-radius:8px;padding:10px 12px;margin:8px 0 4px;font-size:14px}
+.ajuda p{margin:0 0 6px}
+.ajuda p:last-child{margin:0}
+.ajuda b{color:var(--azul)}
 .txt{margin:6px 0 2px;font-weight:500;white-space:pre-wrap}
 .det{margin:0 0 6px;color:var(--suave);font-size:14px;white-space:pre-wrap}
 .status{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
@@ -150,7 +159,14 @@ const quando = d => d ? new Date(d).toLocaleString("pt-BR", {dateStyle: "short",
 const guardar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
 const lembrar = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 
-let codigo = "", nome = "", grupos = [], itens = [], porGrupo = new Map(), porId = new Map(), resp = new Map();
+// ajuda do "?" quando o texto ainda não tem explicação própria
+const AJUDA_TIPO = {
+  decisao: {oque: "Decisão que vale para vários produtos e precisa ser tomada pelo Murillo (às vezes com o jurídico).", como: "Leve o assunto ao Murillo. Registre aqui o que foi decidido e quem decidiu.", exemplo: "Ex.: Decidido com o jurídico em 05/11: anunciar como ciclomotor, com aviso de placa e CNH."},
+  pergunta: {oque: "Pergunta de cliente que já tem resposta no site, mas falta um dado para confirmar a resposta.", como: "Pergunte ao fornecedor o dado descrito em \"O que confirmar\", ou confira na caixa, etiqueta ou manual.", exemplo: "Ex.: Confirmado pelo fornecedor: garantia de 12 meses pelo SAC."},
+  campo: {oque: "Informação técnica que ainda falta na ficha do produto.", como: "Pergunte ao fornecedor ou confira na caixa, etiqueta ou manual do produto.", exemplo: "Ex.: 1,2 kg (sem embalagem)."},
+  conferir: {oque: "Duas fontes (site, cadastro, fornecedor) dizem coisas diferentes, ou há um ponto a verificar.", como: "Confirme com o fornecedor qual é o dado certo e escreva aqui.", exemplo: "Ex.: Fornecedor confirmou: o certo é 20 x 9 x 2 cm."}
+};
+let codigo = "", nome = "", grupos = [], itens = [], porGrupo = new Map(), porId = new Map(), resp = new Map(), ajudas = new Map();
 let ultimo = null;
 const abertos = new Set();
 
@@ -189,7 +205,9 @@ async function iniciar() {
   $("#quem").textContent = nome;
   $("#lista").innerHTML = '<div class="vazio">Carregando pendências…</div>';
   try {
-    [grupos, itens] = await Promise.all([tudo("grupos", "order=ordem&"), tudo("itens", "order=ordem&")]);
+    let aj;
+    [grupos, itens, aj] = await Promise.all([tudo("grupos", "order=ordem&"), tudo("itens", "order=ordem&"), tudo("ajudas")]);
+    aj.forEach(a => ajudas.set(a.chave, a));
     (await tudo("respostas")).forEach(guardarResp);
   } catch (e) {
     $("#lista").innerHTML = '<div class="vazio">Não foi possível carregar. Atualize a página.</div>'; return;
@@ -226,7 +244,7 @@ function desenhar() {
     if (!vis.length) continue;
     nG++; nI += vis.length;
     html += `<details class="grupo" data-g="${esc(g.id)}"${abertos.has(g.id) ? " open" : ""}>
-      <summary><div class="g-nome">${esc(g.nome)}</div>${progGrupo(g.id)}
+      <summary><div class="g-nome">${esc(g.nome)}${skuCurto(g.skus)}</div>${progGrupo(g.id)}
       <div class="g-sub">${esc(g.id === "geral" ? "Definir com o Murillo / jurídico" : `${g.dep} › ${g.sub} › ${g.modelo}`)} · ${vis.length} pendência${vis.length > 1 ? "s" : ""} no filtro</div></summary>
       <div class="g-corpo"></div></details>`;
   }
@@ -272,13 +290,23 @@ function corpo(d) {
   d.querySelector("[data-lote]")?.addEventListener("click", () => emLote(g.id, d));
   d.querySelectorAll(".item").forEach(ligar);
 }
+// SKU junto do nome: o primeiro e quantos mais (a lista completa aparece ao abrir o modelo)
+function skuCurto(skus) {
+  if (!skus.length) return "";
+  return `<span class="sku" title="${esc(skus.join(", "))}">SKU ${esc(skus[0])}${skus.length > 1 ? ` +${skus.length - 1}` : ""}</span>`;
+}
 function cartao(i) {
-  const r = resp.get(i.id) || {}, s = st(i.id);
+  const r = resp.get(i.id) || {}, s = st(i.id), g = grupos.find(x => x.id === i.g);
   const det = i.t === "campo" ? `Seção da ficha: ${i.det}` : i.t === "pergunta" && i.det ? `O que confirmar: ${i.det}` : i.det;
+  const skus = i.skus.length ? i.skus : g?.skus || [];
+  const rotulo = !skus.length ? "" : i.skus.length ? `Só para ${skus.length > 1 ? "os SKUs" : "o SKU"}: ${skus.join(", ")}`
+    : skus.length === 1 ? `SKU ${skus[0]}` : `Todos os ${skus.length} SKUs do modelo (${skus[0]} e outros)`;
   return `<div class="item" data-id="${esc(i.id)}" data-s="${s}">
     <div class="it-topo"><span class="tag t-${i.t}">${TIPO[i.t]}</span>${i.secao ? `<span class="skus">${esc(i.secao)}</span>` : ""}
-      ${i.skus.length ? `<span class="skus">Só para: ${esc(i.skus.join(", "))}</span>` : ""}</div>
+      ${rotulo ? `<span class="sku">${esc(rotulo)}</span>` : ""}
+      <button type="button" class="ajuda-btn" aria-expanded="false" title="O que preciso trazer?">?</button></div>
     <p class="txt">${esc(i.txt)}</p>${det ? `<p class="det">${esc(det)}</p>` : ""}
+    <div class="ajuda" hidden></div>
     <div class="status">${Object.entries(STATUS).map(([k, v]) => `<button type="button" data-v="${k}" class="${k === s ? "on" : ""}">${v}</button>`).join("")}</div>
     <textarea rows="1" placeholder="Resposta do fornecedor ou observação">${esc(r.resposta)}</textarea>
     <div class="meta">${r.quem ? `Última alteração: ${esc(r.quem)}, ${quando(r.atualizado)}` : ""}</div></div>`;
@@ -286,6 +314,14 @@ function cartao(i) {
 function ligar(el) {
   const id = el.dataset.id, ta = el.querySelector("textarea");
   let t;
+  el.querySelector(".ajuda-btn").addEventListener("click", ev => {
+    const caixa = el.querySelector(".ajuda"), b = ev.currentTarget, abrir = caixa.hidden;
+    if (abrir && !caixa.innerHTML) {
+      const i = porId.get(id), a = ajudas.get(i.aj) || AJUDA_TIPO[i.t];
+      caixa.innerHTML = `<p><b>O que é:</b> ${esc(a.oque)}</p><p><b>Como conseguir:</b> ${esc(a.como)}</p><p><b>Como responder:</b> ${esc(a.exemplo)}</p>`;
+    }
+    caixa.hidden = !abrir; b.setAttribute("aria-expanded", abrir);
+  });
   el.querySelectorAll(".status button").forEach(b => b.addEventListener("click", () => salvar(el, {status: b.dataset.v})));
   ta.addEventListener("input", () => { clearTimeout(t); el.querySelector(".meta").textContent = "Digitando…"; t = setTimeout(() => salvarTexto(el), 1200); });
   ta.addEventListener("blur", () => { clearTimeout(t); if (ta.value !== (resp.get(id)?.resposta || "")) salvarTexto(el); });
@@ -346,11 +382,11 @@ async function buscarNovas() {
 $("#exportar").addEventListener("click", () => {
   const gi = new Map(grupos.map(g => [g.id, g]));
   const cel = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const linhas = [["ID", "Departamento", "Subcategoria", "Modelo", "SKUs", "Tipo", "Pendência", "Contexto", "Status", "Resposta", "Quem", "Atualizado"]];
+  const linhas = [["ID", "Departamento", "Subcategoria", "Modelo", "SKUs", "Tipo", "Pendência", "Contexto", "Status", "Resposta", "Quem", "Atualizado", "Ajuda: o que é", "Ajuda: como conseguir", "Ajuda: como responder"]];
   itens.forEach(i => {
-    const g = gi.get(i.g), r = resp.get(i.id) || {};
+    const g = gi.get(i.g), r = resp.get(i.id) || {}, a = ajudas.get(i.aj) || AJUDA_TIPO[i.t];
     linhas.push([i.id, g.dep, i.g === "geral" ? i.secao : g.sub, g.modelo, (i.skus.length ? i.skus : g.skus).join(", "),
-      TIPO[i.t], i.txt, i.det, STATUS[st(i.id)], r.resposta, r.quem, quando(r.atualizado)]);
+      TIPO[i.t], i.txt, i.det, STATUS[st(i.id)], r.resposta, r.quem, quando(r.atualizado), a.oque, a.como, a.exemplo]);
   });
   const blob = new Blob(["﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n")], {type: "text/csv;charset=utf-8"});
   const a = document.createElement("a");
