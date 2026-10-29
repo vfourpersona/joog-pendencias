@@ -519,13 +519,14 @@ $("#xl-arquivo").addEventListener("change", async ev => {
   });
   const nRes = envio.filter(e => e.resposta !== (resp.get(e.item_id)?.resposta || "").trimEnd()).length;
   const lista = (arr, f) => `<ul>${arr.slice(0, 8).map(f).join("")}${arr.length > 8 ? `<li>e mais ${arr.length - 8}</li>` : ""}</ul>`;
-  let html = `<b>${esc(arq.name)}</b>: ${lidas} linhas lidas.<br>`;
-  html += envio.length ? `<b>${envio.length} alterações para gravar</b> (${nRes} com resposta nova ou mudada; as outras só mudam o status).` : "Nenhuma alteração nova para gravar.";
-  if (conflito.length) html += `<p><b>${conflito.length} ficaram de fora</b> porque alguém mudou no painel depois que este Excel foi baixado. Confira no painel:</p>`
+  const pl = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+  let html = `<b>${esc(arq.name)}</b>: ${pl(lidas, "linha lida", "linhas lidas")}.<br>`;
+  html += envio.length ? `<b>${pl(envio.length, "alteração", "alterações")} para gravar</b> (${nRes} com resposta nova ou mudada${nRes < envio.length ? "; as outras só mudam o status" : ""}).` : "Nenhuma alteração nova para gravar.";
+  if (conflito.length) html += `<p><b>${pl(conflito.length, "ficou", "ficaram")} de fora</b> porque alguém mudou no painel depois que este Excel foi baixado. Confira no painel:</p>`
     + lista(conflito, i => `<li>${esc(grupos.find(g => g.id === i.g)?.nome || "")}: ${esc(i.txt.slice(0, 90))}</li>`);
-  if (ruim.length) html += `<p><b>${ruim.length} linhas com status inválido</b> (ficaram de fora):</p>` + lista(ruim, t => `<li>${esc(t)}</li>`);
-  if (desconhecidas) html += `<p>${desconhecidas} linhas com ID que não existe mais no painel (ficaram de fora).</p>`;
-  html += `<div class="botoes">${envio.length ? `<button class="btn btn-prim" id="xl-ok">Gravar ${envio.length} alterações</button>` : ""}<button class="btn" id="xl-cancela">${envio.length ? "Cancelar" : "Fechar"}</button></div>`;
+  if (ruim.length) html += `<p><b>${pl(ruim.length, "linha", "linhas")} com status inválido</b> (fora do envio):</p>` + lista(ruim, t => `<li>${esc(t)}</li>`);
+  if (desconhecidas) html += `<p>${pl(desconhecidas, "linha", "linhas")} com ID que não existe mais no painel (fora do envio).</p>`;
+  html += `<div class="botoes">${envio.length ? `<button class="btn btn-prim" id="xl-ok">Gravar ${pl(envio.length, "alteração", "alterações")}</button>` : ""}<button class="btn" id="xl-cancela">${envio.length ? "Cancelar" : "Fechar"}</button></div>`;
   aviso(html);
   $("#xl-cancela").addEventListener("click", () => aviso(""));
   $("#xl-ok")?.addEventListener("click", async ev => {
@@ -533,7 +534,7 @@ $("#xl-arquivo").addEventListener("change", async ev => {
     try {
       for (let k = 0; k < envio.length; k += 500) await gravar(envio.slice(k, k + 500));
       desenhar();
-      aviso(`<b>${envio.length} alterações gravadas</b> a partir de ${esc(arq.name)}, em nome de ${esc(nome)}.<div class="botoes"><button class="btn" id="xl-cancela">Fechar</button></div>`);
+      aviso(`<b>${pl(envio.length, "alteração gravada", "alterações gravadas")}</b> a partir de ${esc(arq.name)}, em nome de ${esc(nome)}.<div class="botoes"><button class="btn" id="xl-cancela">Fechar</button></div>`);
       $("#xl-cancela").addEventListener("click", () => aviso(""));
     } catch (e) { ev.target.disabled = false; ev.target.textContent = "Não gravou. Tentar de novo"; }
   });
