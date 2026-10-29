@@ -288,7 +288,7 @@ function desenhar() {
       <div class="g-corpo"></div></details>`;
   }
   $("#lista").innerHTML = html || '<div class="vazio">Nada encontrado com esses filtros.</div>';
-  $("#contagem").textContent = `${nI.toLocaleString("pt-BR")} pendências em ${nG} modelos`;
+  $("#contagem").textContent = `${nI.toLocaleString("pt-BR")} pendência${nI === 1 ? "" : "s"} em ${nG} modelo${nG === 1 ? "" : "s"}`;
   document.querySelectorAll("details.grupo").forEach(d => {
     if (d.open) corpo(d);
     d.addEventListener("toggle", () => { d.open ? (abertos.add(d.dataset.g), corpo(d)) : abertos.delete(d.dataset.g); });
