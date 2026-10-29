@@ -305,9 +305,11 @@ function progGrupo(gid) {
   const l = porGrupo.get(gid) || [], c = contar(l), feitos = c.respondido + c.nao_se_aplica;
   return `<div class="g-prog" data-prog="${esc(gid)}">${feitos} de ${l.length} resolvidas<div class="barra">${barra(c, l.length)}</div></div>`;
 }
+// os números do topo contam só o que está no filtro
 function resumo() {
-  const c = contar(itens), t = itens.length || 1;
-  $("#numeros").innerHTML = [["Total", itens.length, "var(--tinta)"], ...Object.entries(STATUS).map(([k, v]) => [v, c[k], COR[k]])]
+  const lista = visiveis().flatMap(([, vis]) => vis), c = contar(lista), t = lista.length || 1;
+  const filtrado = ["#busca", "#f-dep", "#f-sub", "#f-prio", "#f-tipo", "#f-status"].some(s => $(s).value.trim());
+  $("#numeros").innerHTML = [[filtrado ? "Total no filtro" : "Total", lista.length, "var(--tinta)"], ...Object.entries(STATUS).map(([k, v]) => [v, c[k], COR[k]])]
     .map(([r, n, cor]) => `<div class="num"><b style="color:${cor}">${n.toLocaleString("pt-BR")}</b><small>${r}</small></div>`).join("");
   $("#barra").innerHTML = barra(c, t);
 }
