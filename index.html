@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Pendências JOOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#0034A4;--ciano:#00B1FF;--tinta:#14213d;--suave:#5b6478;--linha:#dfe4ee;--fundo:#f4f6fb;--branco:#fff;
+  --pendente:#8a93a6;--perguntado:#e09a00;--respondido:#12a150;--nao:#7a5af8;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;font-family:Jost,system-ui,sans-serif;background:var(--fundo);color:var(--tinta);font-size:16px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+.topo{background:var(--azul);color:#fff;padding:14px 16px}
+.topo-in{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.marca{font-weight:700;letter-spacing:.06em;font-size:22px}
+.marca span{color:var(--ciano)}
+.topo h1{font-size:17px;font-weight:500;margin:0;flex:1;min-width:180px;opacity:.95}
+.topo .acoes{display:flex;gap:8px;align-items:center}
+.btn{border:1px solid var(--linha);background:var(--branco);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--azul)}
+.btn-claro{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}
+.btn-claro:hover{border-color:#fff}
+.btn-prim{background:var(--azul);color:#fff;border-color:var(--azul)}
+.quem{font-size:14px;opacity:.85}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.painel{background:var(--branco);border:1px solid var(--linha);border-radius:12px;padding:16px;margin-bottom:14px}
+.numeros{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.num b{display:block;font-size:24px;font-weight:600}
+.num small{color:var(--suave);font-size:13px}
+.barra{height:8px;background:#e8ecf4;border-radius:99px;overflow:hidden;display:flex;margin-top:12px}
+.barra i{display:block;height:100%}
+.filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}
+.filtros input,.filtros select{width:100%;padding:9px 10px;border:1px solid var(--linha);border-radius:8px;background:#fff}
+.contagem{color:var(--suave);font-size:14px;margin:4px 2px 10px}
+details.grupo{background:var(--branco);border:1px solid var(--linha);border-radius:12px;margin-bottom:10px}
+details.grupo[open]{border-color:#b9c6e4}
+summary{list-style:none;cursor:pointer;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
+summary::-webkit-details-marker{display:none}
+.g-nome{font-weight:600}
+.g-sub{color:var(--suave);font-size:13px}
+.g-prog{grid-row:span 2;text-align:right;font-size:13px;color:var(--suave);min-width:120px}
+.g-prog .barra{margin-top:5px;height:6px}
+.g-corpo{border-top:1px solid var(--linha);padding:12px 14px}
+.g-info{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--suave);margin-bottom:10px;align-items:center}
+.g-info a{color:var(--azul)}
+.item{border:1px solid var(--linha);border-left:4px solid var(--pendente);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.item[data-s=perguntado]{border-left-color:var(--perguntado)}
+.item[data-s=respondido]{border-left-color:var(--respondido)}
+.item[data-s=nao_se_aplica]{border-left-color:var(--nao)}
+.it-topo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}
+.tag{border-radius:99px;padding:2px 9px;font-weight:600;background:#eef2fb;color:var(--azul)}
+.tag.t-decisao{background:#fde8e8;color:#b42318}
+.tag.t-pergunta{background:#e6f6ff;color:#0069a8}
+.tag.t-conferir{background:#fff4e0;color:#9a5b00}
+.skus{color:var(--suave)}
+.txt{margin:6px 0 2px;font-weight:500;white-space:pre-wrap}
+.det{margin:0 0 6px;color:var(--suave);font-size:14px;white-space:pre-wrap}
+.status{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.status button{border:1px solid var(--linha);background:#fff;border-radius:99px;padding:4px 11px;font-size:13px;cursor:pointer}
+.status button.on[data-v=pendente]{background:var(--pendente);border-color:var(--pendente);color:#fff}
+.status button.on[data-v=perguntado]{background:var(--perguntado);border-color:var(--perguntado);color:#fff}
+.status button.on[data-v=respondido]{background:var(--respondido);border-color:var(--respondido);color:#fff}
+.status button.on[data-v=nao_se_aplica]{background:var(--nao);border-color:var(--nao);color:#fff}
+textarea{width:100%;min-height:44px;resize:vertical;border:1px solid var(--linha);border-radius:8px;padding:8px 10px;background:#fbfcfe}
+textarea:focus,input:focus,select:focus{outline:2px solid var(--ciano);outline-offset:0;border-color:transparent}
+.meta{font-size:12px;color:var(--suave);margin-top:4px;min-height:16px}
+.meta.erro{color:#b42318;font-weight:600}
+.vazio{text-align:center;color:var(--suave);padding:30px}
+.entrar{max-width:380px;margin:12vh auto;background:#fff;border:1px solid var(--linha);border-radius:14px;padding:24px}
+.entrar h2{margin:0 0 4px;font-weight:600}
+.entrar p{color:var(--suave);margin:0 0 16px;font-size:14px}
+.entrar label{display:block;font-size:14px;font-weight:500;margin:10px 0 4px}
+.entrar input{width:100%;padding:10px;border:1px solid var(--linha);border-radius:8px}
+.entrar .btn{width:100%;margin-top:16px;padding:10px}
+.aviso{color:#b42318;font-size:14px;min-height:20px;margin-top:8px}
+[hidden]{display:none!important}
+@media (max-width:720px){
+  .numeros{grid-template-columns:repeat(3,1fr)}
+  .filtros{grid-template-columns:1fr 1fr}
+  .filtros .busca{grid-column:1/-1}
+  summary{grid-template-columns:1fr}
+  .g-prog{grid-row:auto;text-align:left}
+  .quem{display:none}
+}
+</style>
+</head>
+<body>
+<header class="topo"><div class="topo-in">
+  <div class="marca">JO<span>O</span>G</div>
+  <h1>Pendências das fichas técnicas</h1>
+  <div class="acoes" id="acoes" hidden>
+    <span class="quem" id="quem"></span>
+    <button class="btn btn-claro" id="exportar" title="Baixa todas as pendências com status e resposta">Exportar planilha</button>
+    <button class="btn btn-claro" id="sair">Sair</button>
+  </div>
+</div></header>
+
+<form class="entrar" id="entrar">
+  <h2>Entrar</h2>
+  <p>Use o código de acesso que o Murillo passou. Seu nome fica registrado em cada resposta.</p>
+  <label for="f-nome">Seu nome</label>
+  <input id="f-nome" autocomplete="name" required>
+  <label for="f-codigo">Código de acesso</label>
+  <input id="f-codigo" autocomplete="off" required placeholder="JOOG-XXXX-XXXX">
+  <button class="btn btn-prim">Entrar</button>
+  <div class="aviso" id="aviso"></div>
+</form>
+
+<main id="app" hidden>
+  <section class="painel">
+    <div class="numeros" id="numeros"></div>
+    <div class="barra" id="barra"></div>
+  </section>
+  <section class="painel filtros">
+    <input class="busca" id="busca" type="search" placeholder="Buscar modelo, SKU ou pendência">
+    <select id="f-dep"><option value="">Todos os departamentos</option></select>
+    <select id="f-tipo">
+      <option value="">Todos os tipos</option>
+      <option value="decisao">Decisão geral</option>
+      <option value="pergunta">Resposta do site a confirmar</option>
+      <option value="campo">Campo da ficha que falta</option>
+      <option value="conferir">Ponto a conferir</option>
+    </select>
+    <select id="f-status">
+      <option value="">Todos os status</option>
+      <option value="aberto">Em aberto (pendente ou perguntado)</option>
+      <option value="pendente">Pendente</option>
+      <option value="perguntado">Perguntado ao fornecedor</option>
+      <option value="respondido">Respondido</option>
+      <option value="nao_se_aplica">Não se aplica</option>
+    </select>
+  </section>
+  <div class="contagem" id="contagem"></div>
+  <div id="lista"></div>
+</main>
+
+<script>
+const API = "https://dovjtghrdkigppwhabjl.supabase.co/rest/v1/";
+const CHAVE = "sb_publishable_Zax16CQqU-UQ-56rIQCjZg_uxt3PHYt";
+const STATUS = {pendente: "Pendente", perguntado: "Perguntado ao fornecedor", respondido: "Respondido", nao_se_aplica: "Não se aplica"};
+const TIPO = {decisao: "Decisão geral", pergunta: "Resposta do site a confirmar", campo: "Campo da ficha que falta", conferir: "Ponto a conferir"};
+const COR = {pendente: "var(--pendente)", perguntado: "var(--perguntado)", respondido: "var(--respondido)", nao_se_aplica: "var(--nao)"};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const quando = d => d ? new Date(d).toLocaleString("pt-BR", {dateStyle: "short", timeStyle: "short"}) : "";
+const guardar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+const lembrar = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+let codigo = "", nome = "", grupos = [], itens = [], porGrupo = new Map(), porId = new Map(), resp = new Map();
+let ultimo = null;
+const abertos = new Set();
+
+async function api(caminho, {method = "GET", body, headers = {}} = {}) {
+  const r = await fetch(API + caminho, {method, body: body ? JSON.stringify(body) : undefined,
+    headers: {apikey: CHAVE, "x-acesso": codigo, "Content-Type": "application/json", ...headers}});
+  if (!r.ok) throw new Error((await r.text()) || r.statusText);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+async function tudo(tabela, filtro = "") {
+  let out = [];
+  for (let de = 0; ; de += 1000) {
+    const parte = await api(`${tabela}?${filtro}limit=1000&offset=${de}`);
+    out = out.concat(parte);
+    if (parte.length < 1000) return out;
+  }
+}
+
+// ---- entrada
+$("#entrar").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  codigo = $("#f-codigo").value.trim().toUpperCase();
+  nome = $("#f-nome").value.trim();
+  $("#aviso").textContent = "Conferindo…";
+  try {
+    if (!(await api("rpc/acesso_ok", {method: "POST", body: {}}))) { $("#aviso").textContent = "Código incorreto."; return; }
+  } catch (e) { $("#aviso").textContent = "Sem conexão com o servidor. Tente de novo."; return; }
+  guardar("jp-codigo", codigo); guardar("jp-nome", nome);
+  iniciar();
+});
+$("#sair").addEventListener("click", () => { guardar("jp-codigo", null); location.reload(); });
+
+async function iniciar() {
+  $("#entrar").hidden = true; $("#app").hidden = false; $("#acoes").hidden = false;
+  $("#quem").textContent = nome;
+  $("#lista").innerHTML = '<div class="vazio">Carregando pendências…</div>';
+  try {
+    [grupos, itens] = await Promise.all([tudo("grupos", "order=ordem&"), tudo("itens", "order=ordem&")]);
+    (await tudo("respostas")).forEach(guardarResp);
+  } catch (e) {
+    $("#lista").innerHTML = '<div class="vazio">Não foi possível carregar. Atualize a página.</div>'; return;
+  }
+  if (!itens.length) { guardar("jp-codigo", null); location.reload(); return; }
+  grupos.unshift({id: "geral", dep: "Geral", sub: "Decisões gerais", modelo: "", nome: "Decisões gerais (valem para vários produtos)", skus: [], pagina: ""});
+  itens.forEach(i => { porId.set(i.id, i); if (!porGrupo.has(i.g)) porGrupo.set(i.g, []); porGrupo.get(i.g).push(i); });
+  [...new Set(grupos.map(g => g.dep))].filter(d => d !== "Geral").sort()
+    .forEach(d => $("#f-dep").insertAdjacentHTML("beforeend", `<option>${esc(d)}</option>`));
+  desenhar();
+  setInterval(buscarNovas, 60000);
+}
+function guardarResp(r) { resp.set(r.item_id, r); if (!ultimo || r.atualizado > ultimo) ultimo = r.atualizado; }
+const st = id => resp.get(id)?.status || "pendente";
+
+// ---- filtros e lista
+["#busca", "#f-dep", "#f-tipo", "#f-status"].forEach(s => $(s).addEventListener("input", () => { clearTimeout(window._f); window._f = setTimeout(desenhar, 200); }));
+
+function passa(i, g) {
+  const tipo = $("#f-tipo").value, fs = $("#f-status").value, s = st(i.id);
+  if (tipo && i.t !== tipo) return false;
+  if (fs === "aberto" ? !(s === "pendente" || s === "perguntado") : fs && s !== fs) return false;
+  const b = $("#busca").value.trim().toLowerCase();
+  if (!b) return true;
+  return [g.nome, g.modelo, g.sub, g.skus.join(" "), i.txt, i.det, i.skus.join(" "), resp.get(i.id)?.resposta].join(" ").toLowerCase().includes(b);
+}
+function desenhar() {
+  resumo();
+  const dep = $("#f-dep").value;
+  let html = "", nG = 0, nI = 0;
+  for (const g of grupos) {
+    if (dep && g.dep !== dep && g.id !== "geral") continue;
+    const vis = (porGrupo.get(g.id) || []).filter(i => passa(i, g));
+    if (!vis.length) continue;
+    nG++; nI += vis.length;
+    html += `<details class="grupo" data-g="${esc(g.id)}"${abertos.has(g.id) ? " open" : ""}>
+      <summary><div class="g-nome">${esc(g.nome)}</div>${progGrupo(g.id)}
+      <div class="g-sub">${esc(g.id === "geral" ? "Definir com o Murillo / jurídico" : `${g.dep} › ${g.sub} › ${g.modelo}`)} · ${vis.length} pendência${vis.length > 1 ? "s" : ""} no filtro</div></summary>
+      <div class="g-corpo"></div></details>`;
+  }
+  $("#lista").innerHTML = html || '<div class="vazio">Nada encontrado com esses filtros.</div>';
+  $("#contagem").textContent = `${nI.toLocaleString("pt-BR")} pendências em ${nG} modelos`;
+  document.querySelectorAll("details.grupo").forEach(d => {
+    if (d.open) corpo(d);
+    d.addEventListener("toggle", () => { d.open ? (abertos.add(d.dataset.g), corpo(d)) : abertos.delete(d.dataset.g); });
+  });
+}
+function contar(lista) {
+  const c = {pendente: 0, perguntado: 0, respondido: 0, nao_se_aplica: 0};
+  lista.forEach(i => c[st(i.id)]++);
+  return c;
+}
+function barra(c, total) {
+  return ["respondido", "nao_se_aplica", "perguntado"].map(k => `<i style="width:${(c[k] / total * 100).toFixed(2)}%;background:${COR[k]}"></i>`).join("");
+}
+function progGrupo(gid) {
+  const l = porGrupo.get(gid) || [], c = contar(l), feitos = c.respondido + c.nao_se_aplica;
+  return `<div class="g-prog" data-prog="${esc(gid)}">${feitos} de ${l.length} resolvidas<div class="barra">${barra(c, l.length)}</div></div>`;
+}
+function resumo() {
+  const c = contar(itens), t = itens.length || 1;
+  $("#numeros").innerHTML = [["Total", itens.length, "var(--tinta)"], ...Object.entries(STATUS).map(([k, v]) => [v, c[k], COR[k]])]
+    .map(([r, n, cor]) => `<div class="num"><b style="color:${cor}">${n.toLocaleString("pt-BR")}</b><small>${r}</small></div>`).join("");
+  $("#barra").innerHTML = barra(c, t);
+}
+function atualizarProg(gid) {
+  const el = document.querySelector(`[data-prog="${CSS.escape(gid)}"]`);
+  if (el) el.outerHTML = progGrupo(gid);
+  resumo();
+}
+
+// ---- itens de um modelo
+function corpo(d) {
+  const g = grupos.find(x => x.id === d.dataset.g);
+  const vis = (porGrupo.get(g.id) || []).filter(i => passa(i, g));
+  const info = g.id === "geral" ? "" : `<div class="g-info"><span>SKUs: ${esc(g.skus.join(", "))}</span>
+    ${g.pagina ? `<a href="${esc(g.pagina)}" target="_blank" rel="noopener">Ver no site</a>` : ""}
+    <button class="btn" data-lote>Marcar pendentes como perguntados</button></div>`;
+  d.querySelector(".g-corpo").innerHTML = info + vis.map(cartao).join("");
+  d.querySelector("[data-lote]")?.addEventListener("click", () => emLote(g.id, d));
+  d.querySelectorAll(".item").forEach(ligar);
+}
+function cartao(i) {
+  const r = resp.get(i.id) || {}, s = st(i.id);
+  const det = i.t === "campo" ? `Seção da ficha: ${i.det}` : i.t === "pergunta" && i.det ? `O que confirmar: ${i.det}` : i.det;
+  return `<div class="item" data-id="${esc(i.id)}" data-s="${s}">
+    <div class="it-topo"><span class="tag t-${i.t}">${TIPO[i.t]}</span>${i.secao ? `<span class="skus">${esc(i.secao)}</span>` : ""}
+      ${i.skus.length ? `<span class="skus">Só para: ${esc(i.skus.join(", "))}</span>` : ""}</div>
+    <p class="txt">${esc(i.txt)}</p>${det ? `<p class="det">${esc(det)}</p>` : ""}
+    <div class="status">${Object.entries(STATUS).map(([k, v]) => `<button type="button" data-v="${k}" class="${k === s ? "on" : ""}">${v}</button>`).join("")}</div>
+    <textarea rows="1" placeholder="Resposta do fornecedor ou observação">${esc(r.resposta)}</textarea>
+    <div class="meta">${r.quem ? `Última alteração: ${esc(r.quem)}, ${quando(r.atualizado)}` : ""}</div></div>`;
+}
+function ligar(el) {
+  const id = el.dataset.id, ta = el.querySelector("textarea");
+  let t;
+  el.querySelectorAll(".status button").forEach(b => b.addEventListener("click", () => salvar(el, {status: b.dataset.v})));
+  ta.addEventListener("input", () => { clearTimeout(t); el.querySelector(".meta").textContent = "Digitando…"; t = setTimeout(() => salvarTexto(el), 1200); });
+  ta.addEventListener("blur", () => { clearTimeout(t); if (ta.value !== (resp.get(id)?.resposta || "")) salvarTexto(el); });
+}
+function salvarTexto(el) {
+  const v = el.querySelector("textarea").value, s = st(el.dataset.id);
+  // escrever uma resposta num item em aberto já marca como respondido (dá para voltar o status)
+  salvar(el, v.trim() && (s === "pendente" || s === "perguntado") ? {resposta: v, status: "respondido"} : {resposta: v});
+}
+async function gravar(linhas) {
+  const r = await api("respostas?on_conflict=item_id", {method: "POST", body: linhas,
+    headers: {Prefer: "resolution=merge-duplicates,return=representation"}});
+  r.forEach(guardarResp);
+}
+async function salvar(el, campos) {
+  const id = el.dataset.id, atual = resp.get(id) || {status: "pendente", resposta: ""}, meta = el.querySelector(".meta");
+  meta.className = "meta"; meta.textContent = "Salvando…";
+  try {
+    await gravar([{item_id: id, status: campos.status ?? atual.status, resposta: campos.resposta ?? atual.resposta, quem: nome}]);
+    pintar(el); meta.textContent = `Salvo · ${nome}, ${quando(resp.get(id).atualizado)}`;
+    atualizarProg(porId.get(id).g);
+  } catch (e) { meta.className = "meta erro"; meta.textContent = "Não salvou (sem conexão?). Tente de novo."; }
+}
+function pintar(el) {
+  const s = st(el.dataset.id);
+  el.dataset.s = s;
+  el.querySelectorAll(".status button").forEach(b => b.classList.toggle("on", b.dataset.v === s));
+}
+async function emLote(gid, d) {
+  const alvo = (porGrupo.get(gid) || []).filter(i => st(i.id) === "pendente");
+  if (!alvo.length) return;
+  const b = d.querySelector("[data-lote]"); b.disabled = true; b.textContent = "Salvando…";
+  try {
+    await gravar(alvo.map(i => ({item_id: i.id, status: "perguntado", resposta: resp.get(i.id)?.resposta || "", quem: nome})));
+    d.querySelectorAll(".item").forEach(pintar); atualizarProg(gid);
+    b.textContent = `${alvo.length} marcadas como perguntadas`;
+  } catch (e) { b.disabled = false; b.textContent = "Não salvou. Tentar de novo"; }
+}
+
+// ---- respostas de outras pessoas (a cada minuto)
+async function buscarNovas() {
+  if (!ultimo) return;
+  try {
+    const novas = await tudo("respostas", `atualizado=gt.${encodeURIComponent(ultimo)}&`);
+    novas.forEach(r => {
+      guardarResp(r);
+      const el = document.querySelector(`.item[data-id="${CSS.escape(r.item_id)}"]`);
+      if (el && document.activeElement !== el.querySelector("textarea")) {
+        el.querySelector("textarea").value = r.resposta; pintar(el);
+        el.querySelector(".meta").textContent = `Última alteração: ${r.quem}, ${quando(r.atualizado)}`;
+      }
+    });
+    if (novas.length) { new Set(novas.map(r => porId.get(r.item_id)?.g)).forEach(g => g && atualizarProg(g)); }
+  } catch (e) {}
+}
+
+// ---- exportar (CSV que abre no Excel)
+$("#exportar").addEventListener("click", () => {
+  const gi = new Map(grupos.map(g => [g.id, g]));
+  const cel = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const linhas = [["ID", "Departamento", "Subcategoria", "Modelo", "SKUs", "Tipo", "Pendência", "Contexto", "Status", "Resposta", "Quem", "Atualizado"]];
+  itens.forEach(i => {
+    const g = gi.get(i.g), r = resp.get(i.id) || {};
+    linhas.push([i.id, g.dep, i.g === "geral" ? i.secao : g.sub, g.modelo, (i.skus.length ? i.skus : g.skus).join(", "),
+      TIPO[i.t], i.txt, i.det, STATUS[st(i.id)], r.resposta, r.quem, quando(r.atualizado)]);
+  });
+  const blob = new Blob(["﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n")], {type: "text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `pendencias-joog-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+// ---- volta direto se já entrou neste navegador
+codigo = lembrar("jp-codigo") || ""; nome = lembrar("jp-nome") || "";
+$("#f-nome").value = nome;
+if (codigo && nome) iniciar();
+</script>
+</body>
+</html>
